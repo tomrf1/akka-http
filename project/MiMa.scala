@@ -39,7 +39,7 @@ object MiMa extends AutoPlugin {
           "10.0.8",
           "10.0.9"
       )
-        .map((version: String) => organization.value %% name.value % version)
+        .collect { case version if name.value != "akka-http-caching" => organization.value %% name.value % version }
   )
 
   case class FilterAnyProblem(name: String) extends com.typesafe.tools.mima.core.ProblemFilter {

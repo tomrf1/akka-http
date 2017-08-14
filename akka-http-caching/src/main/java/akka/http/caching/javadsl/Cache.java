@@ -32,7 +32,7 @@ public interface Cache<K, V> {
    * Retrieves the CompletionStage instance that is currently in the cache for the given key.
    * Returns None if the key has no corresponding cache entry.
    */
-  Optional<CompletionStage<V>> get(K key);
+  Optional<CompletionStage<V>> getOptional(K key);
 
   /**
    * Removes the cache item for the given key.

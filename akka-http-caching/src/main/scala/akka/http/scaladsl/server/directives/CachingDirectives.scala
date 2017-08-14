@@ -1,11 +1,12 @@
 /**
  * Copyright (C) 2017 Lightbend Inc. <http://www.lightbend.com/>
  */
+
 package akka.http.scaladsl.server.directives
 
 import akka.annotation.ApiMayChange
 import akka.http.caching.scaladsl.Cache
-import akka.http.caching.{ Cache, LfuCache, LfuCacheSettings }
+import akka.http.caching.{ LfuCache, LfuCacheSettings }
 import akka.http.scaladsl.server.Directive0
 
 import scala.concurrent.duration.Duration

@@ -3,6 +3,7 @@
  */
 package akka.http.caching.scaladsl
 
+import java.util.Optional
 import java.util.concurrent.{ CompletableFuture, CompletionStage }
 
 import akka.annotation.{ ApiMayChange, DoNotInherit }
@@ -20,7 +21,7 @@ import scala.concurrent.{ Future, Promise }
  */
 @ApiMayChange
 @DoNotInherit
-class Cache[K, V] extends akka.http.caching.javadsl.Cache[K, V] {
+abstract class Cache[K, V] extends akka.http.caching.javadsl.Cache[K, V] {
   cache ⇒
 
   /**
@@ -39,14 +40,16 @@ class Cache[K, V] extends akka.http.caching.javadsl.Cache[K, V] {
   /**
    * Returns either the cached Future for the given key or the given value as a Future
    */
-  def apply(key: K, block: () ⇒ V): Future[V] =
+  def get(key: K, block: () ⇒ V): Future[V] =
     cache.apply(key, () ⇒ Future.successful(block()))
 
   /**
    * Retrieves the future instance that is currently in the cache for the given key.
    * Returns None if the key has no corresponding cache entry.
    */
-  override def get(key: K): Option[Future[V]]
+  def get(key: K): Option[Future[V]]
+  override def getOptional(key: K): Optional[CompletionStage[V]] =
+    Optional.ofNullable(get(key).map(f ⇒ futureToJava(f)).orNull)
 
   /**
    * Removes the cache item for the given key.
@@ -65,7 +68,7 @@ class Cache[K, V] extends akka.http.caching.javadsl.Cache[K, V] {
    * cache entries, since expired entries are only evicted upon next access
    * (or by being thrown out by a capacity constraint).
    */
-  override def keys: immutable.Set[K]
+  def keys: immutable.Set[K]
   override def getKeys: java.util.Set[K] = keys.asJava
 
   final override def getFuture(key: K, genValue: Creator[CompletionStage[V]]): CompletionStage[V] =
@@ -73,13 +76,16 @@ class Cache[K, V] extends akka.http.caching.javadsl.Cache[K, V] {
 
   final override def getOrFulfil(key: K, f: Procedure[CompletableFuture[V]]): CompletionStage[V] =
     futureToJava(apply(key, promise ⇒ {
-
+      val completableFuture = new CompletableFuture[V]
+      f(completableFuture)
+      promise.completeWith(futureToScala(completableFuture))
     }))
 
   /**
    * Returns either the cached CompletionStage for the given key or the given value as a CompletionStage
    */
-  override def getStrict(key: K, block: Creator[V]): CompletionStage[V] = ???
+  override def getStrict(key: K, block: Creator[V]): CompletionStage[V] =
+    futureToJava(get(key, () ⇒ block.create))
 
   /**
    * Returns the upper bound for the number of currently cached entries.
@@ -87,5 +93,5 @@ class Cache[K, V] extends akka.http.caching.javadsl.Cache[K, V] {
    * cache entries, since expired entries are only evicted upon next access
    * (or by being thrown out by a capacity constraint).
    */
-  override def size(): Int = ???
+  override def size(): Int
 }
